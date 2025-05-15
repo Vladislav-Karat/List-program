@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Union
 from dataclasses import dataclass
 from enum import Enum, auto
 import webbrowser
+import random
 
 # ==================== Constants and Enums ====================
 class OperationType(Enum):
@@ -823,16 +824,181 @@ class LinkedListApp:
 
     def _show_about(self) -> None:
         messagebox.showinfo(
-            "About",
-            "Ultimate Doubly Linked List Visualizer\n"
-            "Author: Your Name\n"
+            "HSE",
+            "List Visualizer\n"
+            "Author: Alexander Kalinin\n"
             "GitHub: https://github.com/Vladislav-Karat/List-program.git\n"
-            "2024"
+            "2025"
         )
+
+# ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ И РАСШИРЕНИЯ ====================
+
+# --- Расширенная справка ---
+extended_help = """
+Ultimate Doubly Linked List Visualizer
+
+Возможности:
+- Вставка, удаление, поиск, очистка, undo, импорт/экспорт, история, темы, справка.
+- Визуализация структуры и связей.
+- Поддержка горячих клавиш.
+- Генерация случайных данных.
+- Сохранение и загрузка истории операций.
+
+Горячие клавиши:
+- Ctrl+Z — Undo
+- Enter — Вставка по индексу
+
+Рекомендации:
+- Для вставки по индексу укажите значение и индекс.
+- Для генерации случайных данных используйте соответствующую кнопку.
+- Историю операций можно сохранить и загрузить через меню.
+"""
+
+def show_extended_help():
+    """Показать расширенную справку."""
+    messagebox.showinfo("Расширенная справка", extended_help)
+
+# --- Дополнительные темы оформления ---
+EXTRA_THEMES = {
+    "PINK": {
+        "normal": "#F8BBD0", "highlight": "#F06292", "head": "#F48FB1", "tail": "#EC407A",
+        "arrow": "#AD1457", "prev_arrow": "#D81B60", "text": "#880E4F", "pointer_text": "#AD1457",
+        "border": "#C2185B", "pointer_area": "#F8BBD0", "canvas_bg": "#FCE4EC"
+    },
+    "ORANGE": {
+        "normal": "#FFE0B2", "highlight": "#FFB74D", "head": "#FFCC80", "tail": "#FF9800",
+        "arrow": "#E65100", "prev_arrow": "#F57C00", "text": "#E65100", "pointer_text": "#F57C00",
+        "border": "#FF9800", "pointer_area": "#FFE0B2", "canvas_bg": "#FFF3E0"
+    },
+    "GRAY": {
+        "normal": "#CFD8DC", "highlight": "#B0BEC5", "head": "#90A4AE", "tail": "#78909C",
+        "arrow": "#37474F", "prev_arrow": "#607D8B", "text": "#263238", "pointer_text": "#37474F",
+        "border": "#78909C", "pointer_area": "#CFD8DC", "canvas_bg": "#ECEFF1"
+    }
+}
+
+def add_extra_themes(visualizer):
+    """Добавляет дополнительные темы оформления."""
+    if not hasattr(visualizer, "extra_themes"):
+        visualizer.extra_themes = {}
+    visualizer.extra_themes.update(EXTRA_THEMES)
+
+# --- Генерация случайных данных ---
+def generate_random_data(linked_list, app):
+    """Генерирует случайный список."""
+    linked_list.clear()
+    count = random.randint(5, 15)
+    for _ in range(count):
+        value = random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        linked_list.insert_at_tail(value)
+    app.update_display()
+    app._update_status("Случайные данные сгенерированы", "success")
+
+# --- Работа с историей операций ---
+def clear_history(linked_list, app):
+    """Очищает историю операций."""
+    linked_list.operation_history.clear()
+    app._update_status("История операций очищена", "info")
+
+def save_history(linked_list, app):
+    """Сохраняет историю операций в файл."""
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".json",
+        filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+    )
+    if file_path:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(linked_list.operation_history, f, ensure_ascii=False, indent=2)
+        app._update_status(f"История сохранена в {file_path}", "success")
+
+def load_history(linked_list, app):
+    """Загружает историю операций из файла."""
+    file_path = filedialog.askopenfilename(
+        filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+    )
+    if file_path:
+        with open(file_path, "r", encoding="utf-8") as f:
+            linked_list.operation_history = json.load(f)
+        if linked_list.operation_history:
+            last_state = linked_list.operation_history[-1]["state"]
+            linked_list._load_from_list(last_state)
+        app.update_display()
+        app._update_status(f"История загружена из {file_path}", "success")
+
+# --- Добавление новых кнопок в интерфейс ---
+def add_extra_buttons(app):
+    """Добавляет дополнительные кнопки в сайдбар."""
+    extra_frame = ttk.LabelFrame(app.sidebar_frame, text="Дополнительно")
+    extra_frame.pack(fill=tk.X, pady=5)
+    ttk.Button(extra_frame, text="Случайные данные", command=lambda: generate_random_data(app.linked_list, app)).pack(fill=tk.X, pady=2)
+    ttk.Button(extra_frame, text="Очистить историю", command=lambda: clear_history(app.linked_list, app)).pack(fill=tk.X, pady=2)
+    ttk.Button(extra_frame, text="Сохранить историю", command=lambda: save_history(app.linked_list, app)).pack(fill=tk.X, pady=2)
+    ttk.Button(extra_frame, text="Загрузить историю", command=lambda: load_history(app.linked_list, app)).pack(fill=tk.X, pady=2)
+    ttk.Button(extra_frame, text="Расширенная справка", command=show_extended_help).pack(fill=tk.X, pady=2)
+
+    # Кнопки для новых тем
+    theme_extra_frame = ttk.LabelFrame(app.sidebar_frame, text="Экстра темы")
+    theme_extra_frame.pack(fill=tk.X, pady=5)
+    ttk.Button(theme_extra_frame, text="Pink", command=lambda: app._change_theme(Theme("PINK"))).pack(fill=tk.X, pady=1)
+    ttk.Button(theme_extra_frame, text="Orange", command=lambda: app._change_theme(Theme("ORANGE"))).pack(fill=tk.X, pady=1)
+    ttk.Button(theme_extra_frame, text="Gray", command=lambda: app._change_theme(Theme("GRAY"))).pack(fill=tk.X, pady=1)
+
+# --- Демонстрационные функции и заглушки для будущих фич ---
+def future_feature_1():
+    """Заглушка для будущей функции 1."""
+    pass
+
+def future_feature_2():
+    """Заглушка для будущей функции 2."""
+    pass
+
+def future_feature_3():
+    """Заглушка для будущей функции 3."""
+    pass
+
+# --- Пример использования классов и функций ---
+def demo_usage():
+    """Демонстрация использования DoublyLinkedList."""
+    dll = DoublyLinkedList()
+    dll.insert_at_head("A")
+    dll.insert_at_tail("B")
+    dll.insert_at_position(1, "C")
+    print("Demo list:", dll.to_list())
+    dll.delete_at_position(1)
+    print("After delete:", dll.to_list())
+    dll.clear()
+    print("After clear:", dll.to_list())
+
+# --- Псевдо-тесты (заглушки) ---
+def test_insert():
+    """Тест вставки."""
+    pass
+
+def test_delete():
+    """Тест удаления."""
+    pass
+
+def test_search():
+    """Тест поиска."""
+    pass
+
+def test_export_import():
+    """Тест экспорта/импорта."""
+    pass
+
+"""
+Этот файл содержит расширенную версию визуализатора двусвязного списка.
+Добавлены дополнительные темы, справка, кнопки, заглушки для будущих функций,
+и демонстрационные вызовы. Вы можете использовать этот шаблон для расширения
+своих учебных или демонстрационных проектов.
+"""
 
 def main():
     root = tk.Tk()
     app = LinkedListApp(root)
+    add_extra_themes(app.visualizer)
+    add_extra_buttons(app)
+    demo_usage()
     root.mainloop()
 
 if __name__ == "__main__":
